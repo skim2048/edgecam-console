@@ -1,0 +1,25 @@
+.bi {
+  vertical-align: -.125em;
+  fill: currentColor;
+}
+
+/* 임시 스타일 */
+.b {
+  border-style: solid;
+  border-width: 2px;
+}
+.br {
+  border-color: red;
+}
+.bb {
+  border-color: blue;
+}
+.bp {
+  border-color: purple;
+}
+.bg {
+  border-color: green;
+}
+.bo {
+  border-color: orange;
+}
