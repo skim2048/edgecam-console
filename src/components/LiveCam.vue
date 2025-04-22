@@ -43,9 +43,11 @@ const renderingSpec = reactive({
 });
 
 function updateImgSource(data) {
-  if (!autoFitImgLocked.value) {
-    webSocketReader.value.readAsArrayBuffer(data);
-  }
+  // if (!autoFitImgLocked.value) {
+  //   webSocketReader.value.readAsArrayBuffer(data);
+  // }
+  URL.revokeObjectURL(imgSource.value);
+  imgSource.value = URL.createObjectURL(data);
 }
 
 function openWebSocket() {
@@ -103,25 +105,9 @@ watch(renderingSpec, () => {
 });
 
 onMounted(() => {
-  webSocketURI.value = 'ws://172.27.1.125:8080/inference/det/0';
+  webSocketURI.value = 'ws://172.27.1.123:12921/stream1';
   autoFitImgLocked.value = false;
   openWebSocket();
-
-  webSocketReader.value = new FileReader();
-  webSocketReader.value.onload = function() {
-    const arrayBuffer = webSocketReader.value.result;
-    const dataView = new DataView(arrayBuffer);
-
-    const length = dataView.getUint32(0, false);
-    const eventsJson = new TextDecoder().decode(new Uint8Array(arrayBuffer, 4, length));
-    const events = JSON.parse(eventsJson);
-
-    const frameStart = 4 + length;
-    const frame = arrayBuffer.slice(frameStart);
-
-    URL.revokeObjectURL(imgSource.value);
-    imgSource.value = URL.createObjectURL(new Blob([frame]));
-  }
 });
 </script>
 
