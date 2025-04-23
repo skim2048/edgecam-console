@@ -105,7 +105,7 @@ watch(renderingSpec, () => {
 });
 
 onMounted(() => {
-  webSocketURI.value = 'ws://172.27.1.123:12921/stream1';
+  webSocketURI.value = 'ws://localhost:12921/stream1';
   autoFitImgLocked.value = false;
   openWebSocket();
 });
