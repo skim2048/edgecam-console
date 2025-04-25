@@ -229,7 +229,10 @@ watch(isRoisModified, () => {
     canvasContext.clearRect(0, 0, width, height);
     refreshCanvas();
     isRoisModified.value = false;
-    const roisPoints = rois.map(roi => roi.getPoints());
+
+    // const roisPoints = rois.map(roi => roi.getPoints());
+    const roisPoints = rois[0].getPoints();  // only red
+
     emits('onRoisModified', roisPoints);
   }
 });

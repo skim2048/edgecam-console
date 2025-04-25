@@ -1,5 +1,7 @@
 <script setup>
-import { ref, reactive, onMounted, watch, inject } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
+
+import axios from 'axios';
 
 import IconButton from '@/components/IconButton.vue';
 import Toast from '@/components/Toast.vue';
@@ -19,7 +21,7 @@ const autoFitImgLocked = ref(true);
 const roiCanvas = ref(null);
 const roiCanvasLocked = ref(true);
 
-const roiColors = ref(['red', 'blue', 'green', 'orange']);
+const roiColors = ref(['red']);
 const selectedRoi = ref(0);
 
 const toolbarTitle = ref('');
@@ -30,22 +32,15 @@ const toast = ref(null);
 const webSocket = ref(null);
 const webSocketURI = ref(null);
 const webSocketOpened = ref(false);
-const webSocketReader = ref(null);
 
 const mContainer = ref(null);
 const onEvent = ref(false);
 
-const threshold = reactive({red: 0, blue: 0, green: 0, orange: 0});
 const renderingSpec = reactive({
-  'rendering': false,
-  'rois': [[], [], [], []],
-  'threshold': [0, 0, 0, 0],
+  'rois': [],
 });
 
 function updateImgSource(data) {
-  // if (!autoFitImgLocked.value) {
-  //   webSocketReader.value.readAsArrayBuffer(data);
-  // }
   URL.revokeObjectURL(imgSource.value);
   imgSource.value = URL.createObjectURL(data);
 }
@@ -54,9 +49,9 @@ function openWebSocket() {
   webSocket.value.open(webSocketURI.value);
 }
 
-function sendWebSocket(data) {
-  webSocket.value.send(data);
-}
+// function sendWebSocket(data) {
+//   webSocket.value.send(data);
+// }
 
 function closeWebSocket() {
   webSocket.value.close();
@@ -68,24 +63,29 @@ function showToast(message) {
   }
 }
 
-watch(threshold, () => {
-  renderingSpec.threshold = [
-    threshold.red,
-    threshold.blue,
-    threshold.green,
-    threshold.orange
-  ];
-});
+function sendRoiToServer(roisData) {
+  axios.post('http://172.27.1.123:12921/update/roi', { rois: roisData })
+    .then(response => {
+      console.log('Successfully sent ROI data to the server:', response.data);
+    })
+    .catch(error => {
+      console.error('Failed to send ROI data to the server:', error);
+    });
+}
 
 watch(webSocketOpened, () => {
   if (webSocketOpened.value) {
-    sendWebSocket(JSON.stringify(renderingSpec));
-  }
-  else {
+    const roisData = renderingSpec.rois;
+    sendRoiToServer(roisData);
+  } else {
     imgSource.value = imgNoCam;
-    toolbarTitle.value = '';
     onEvent.value = false;
   }
+});
+
+watch(renderingSpec, () => {
+  const roisData = renderingSpec.rois;
+  sendRoiToServer(roisData);
 });
 
 watch(roiCanvasLocked, () => {
@@ -95,12 +95,6 @@ watch(roiCanvasLocked, () => {
   else {
     LockButtonBackgrundColor.value =
       roiColors.value[selectedRoi.value];
-  }
-});
-
-watch(renderingSpec, () => {
-  if (webSocketOpened.value) {
-    sendWebSocket(JSON.stringify(renderingSpec));
   }
 });
 
@@ -130,16 +124,6 @@ onMounted(() => {
       <p class="col m-0 mx-1 p-0">
         {{ toolbarTitle }}
       </p>
-
-      <IconButton
-        class="col-auto icon-btn"
-        :icon-href="'/icons.svg#eye-slash-fill'"
-        :icon-pressed-href="'/icons.svg#eye-fill'"
-        :btn-width="23"
-        :btn-height="23"
-        :btn-padding="10"
-        @on-toggled="state => renderingSpec.rendering = state">
-      </IconButton>
 
       <IconButton
         class="col-auto icon-btn"
@@ -197,7 +181,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-
 .livecam-screen {
   position: relative;
   display: flex;
