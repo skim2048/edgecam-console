@@ -13,6 +13,8 @@ const props = defineProps({
   camId: { type: String, required: true },
 });
 
+const backendIP = import.meta.env.VITE_BACKEND_IP;
+
 const imgNoCam = '/nocam.svg';
 const imgSource = ref(imgNoCam);
 
@@ -24,7 +26,8 @@ const roiCanvasLocked = ref(true);
 const roiColors = ref(['red']);
 const selectedRoi = ref(0);
 
-const toolbarTitle = ref('');
+// const toolbarTitle = ref('');
+const rtspInput = ref('');
 const LockButtonBackgrundColor = ref('transparent');
 
 const toast = ref(null);
@@ -53,9 +56,9 @@ function openWebSocket() {
 //   webSocket.value.send(data);
 // }
 
-function closeWebSocket() {
-  webSocket.value.close();
-}
+// function closeWebSocket() {
+//   webSocket.value.close();
+// }
 
 function showToast(message) {
   if (toast.value) {
@@ -63,8 +66,40 @@ function showToast(message) {
   }
 }
 
+function startStreaming(locationData) {
+  axios.post(`http://${backendIP}:12921/streaming/start`, { location: locationData })
+    .then(response => {
+      console.log('Successfully started streaming:', response.data);
+      window.location.reload();
+    })
+    .catch(error => {
+      console.error('Failed to start streaming:', error.response?.data || error.message);
+    });
+}
+
+function stopStreaming() {
+  axios.post(`http://${backendIP}:12921/streaming/stop`)
+    .then(response => {
+      console.log('Successfully stopped streaming:', response.data);
+      webSocket.value.close();
+    })
+    .catch(error => {
+      console.error('Failed to stop streaming:', error.response?.data || error.message);
+    });
+}
+
+function storeConfigs() {
+  axios.post(`http://${backendIP}:12921/configs/store`)
+    .then(response => {
+      console.log('Successfully stored configs:', response.data);
+    })
+    .catch(error => {
+      console.error('Failed to store configs:', error.response?.data || error.message);
+    });
+}
+
 function sendRoiToServer(roisData) {
-  axios.post('http://172.27.1.123:12921/update/roi', { rois: roisData })
+  axios.post(`http://${backendIP}:12921/update/roi`, { rois: roisData })
     .then(response => {
       console.log('Successfully sent ROI data to the server:', response.data);
     })
@@ -72,6 +107,36 @@ function sendRoiToServer(roisData) {
       console.error('Failed to send ROI data to the server:', error);
     });
 }
+
+// function sendConfThresToServer(confThres) {
+//   axios.post(`http://${backendIP}:12921/update/conf-thres`, { conf_thres: confThres })
+//     .then(response => {
+//       console.log('Successfully updated confidence threshold:', response.data);
+//     })
+//     .catch(error => {
+//       console.error('Failed to update confidence threshold:', error.response?.data || error.message);
+//     });
+// }
+
+// function sendScaleFactorToServer(scaleFactor) {
+//   axios.post(`http://${backendIP}:12921/update/scale-factor`, { scale_factor: scaleFactor })
+//     .then(response => {
+//       console.log('Successfully updated scale factor:', response.data);
+//     })
+//     .catch(error => {
+//       console.error('Failed to update scale factor:', error.response?.data || error.message);
+//     });
+// }
+
+// function sendPixelSizeToServer(pixelSize) {
+//   axios.post(`http://${backendIP}:12921/update/pixel-size`, { pixel_size: pixelSize })
+//     .then(response => {
+//       console.log('Successfully updated pixel size:', response.data);
+//     })
+//     .catch(error => {
+//       console.error('Failed to update pixel size:', error.response?.data || error.message);
+//     });
+// }
 
 watch(webSocketOpened, () => {
   if (webSocketOpened.value) {
@@ -99,7 +164,19 @@ watch(roiCanvasLocked, () => {
 });
 
 onMounted(() => {
-  webSocketURI.value = 'ws://localhost:12921/stream1';
+  axios.get(`http://${backendIP}:12921/get/roi`)
+    .then(response => {
+      if (response.data.status === 'success') {
+        renderingSpec.rois = response.data.rois;
+        console.log('Loaded ROI data:', renderingSpec.rois);
+        roiCanvas.value.loadRois(response.data.rois);
+      }
+    })
+    .catch(error => {
+      console.error('Failed to load ROI data:', error.response?.data || error.message);
+    });
+
+  webSocketURI.value = `ws://${backendIP}:12921/stream1`;
   autoFitImgLocked.value = false;
   openWebSocket();
 });
@@ -121,9 +198,32 @@ onMounted(() => {
         ${webSocketOpened ? 'text-bg-success' : 'text-bg-danger'}`">
         {{ camId }}
       </span>
+      <!--
       <p class="col m-0 mx-1 p-0">
         {{ toolbarTitle }}
       </p>
+      -->
+      <div class="col m-0 mx-1 p-0 d-flex align-items-center">
+        <input v-model="rtspInput" type="text" class="form-control form-control-sm me-2" placeholder="Enter RTSP URL">
+      </div>
+
+      <IconButton
+        class="col-auto icon-btn"
+        :icon-href="'/icons.svg#play-fill'"
+        :btn-width="23"
+        :btn-height="23"
+        :btn-padding="0"
+        @on-toggled="() => startStreaming(rtspInput)">
+      </IconButton>
+
+      <IconButton
+        class="col-auto icon-btn"
+        :icon-href="'/icons.svg#floppy2-fill'"
+        :btn-width="23"
+        :btn-height="23"
+        :btn-padding="10"
+        @on-toggled="() => storeConfigs()">
+      </IconButton>
 
       <IconButton
         class="col-auto icon-btn"
@@ -151,7 +251,7 @@ onMounted(() => {
         :btn-width="23"
         :btn-height="23"
         :btn-padding="10"
-        @on-toggled="closeWebSocket">
+        @on-toggled="() => stopStreaming()">
       </IconButton>
     </div>
 

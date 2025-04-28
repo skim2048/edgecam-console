@@ -90,7 +90,7 @@ const emits = defineEmits([
 ]);
 
 defineExpose({
-  getCanvas, resizeCanvas, deleteRoi, deleteRois,
+  getCanvas, resizeCanvas, deleteRoi, deleteRois, loadRois
 });
 
 function getCanvas() {
@@ -220,6 +220,16 @@ function deleteRois() {
   if (props.locked)
     return;
   rois.forEach(roi => roi.deletePoints());
+  isRoisModified.value = true;
+}
+
+function loadRois(newRoisData) {
+  rois[0].points = newRoisData.map(([normX, normY]) => {
+    const point = new Point();
+    point.normX = normX;
+    point.normY = normY;
+    return point;
+  });
   isRoisModified.value = true;
 }
 
