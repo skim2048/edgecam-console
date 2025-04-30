@@ -13,7 +13,7 @@ defineExpose({
   show,
 });
 
-function show(msg, src=null, title='Notice', subtitle='') {
+function show(msg, src=null, title='알림', subtitle='') {
   toastMsg.value = msg;
   toastImgSrc.value = src;
   toastTitle.value = title;
