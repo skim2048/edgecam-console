@@ -69,7 +69,7 @@ function showToast(message) {
 function startStreaming(locationData) {
   axios.post(`http://${edgecamEngine}/streaming/start`, { location: locationData })
     .then(response => {
-      webSocketURI.value = `ws://${edgecamEngine}/stream1`;
+      webSocketURI.value = `ws://${edgecamEngine}/live`;
       autoFitImgLocked.value = false;
       openWebSocket();
       axios.get(`http://${edgecamEngine}/get/roi`)
@@ -102,13 +102,13 @@ function stopStreaming() {
     });
 }
 
-function storeConfigs() {
-  axios.post(`http://${edgecamEngine}/configs/store`)
+function saveConfig() {
+  axios.post(`http://${edgecamEngine}/config/save`)
     .then(response => {
-      console.log('Successfully stored configs:', response.data);
+      console.log('Configuration saved successfully:', response.data);
     })
     .catch(error => {
-      console.error('Failed to store configs:', error.response?.data || error.message);
+      console.error('Failed to save configuration:', error.response?.data || error.message);
     });
 }
 
@@ -224,7 +224,7 @@ onMounted(() => {
         :btn-width="23"
         :btn-height="23"
         :btn-padding="10"
-        @on-toggled="() => storeConfigs()">
+        @on-toggled="() => saveConfig()">
       </IconButton>
 
       <IconButton
